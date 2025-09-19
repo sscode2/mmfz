@@ -1,0 +1,45 @@
+name: Deploy to Netlify
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: 'natalify-frontend/package-lock.json'
+    
+    - name: Install frontend dependencies
+      run: |
+        cd natalify-frontend
+        npm ci
+    
+    - name: Build frontend
+      run: |
+        cd natalify-frontend
+        npm run build
+    
+    - name: Install Netlify Functions dependencies
+      run: |
+        cd natalify-frontend/netlify/functions
+        npm ci
+    
+    - name: Deploy to Netlify
+      uses: netlify/actions/cli@master
+      env:
+        NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+        NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+      with:
+        args: deploy --dir=natalify-frontend/dist --functions=natalify-frontend/netlify/functions --prod
+        secrets: '["NETLIFY_AUTH_TOKEN", "NETLIFY_SITE_ID"]'
